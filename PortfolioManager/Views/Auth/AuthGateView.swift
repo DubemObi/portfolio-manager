@@ -13,7 +13,7 @@ struct AuthGateView: View {
 
     var body: some View {
         if isUnlocked {
-            ContentView()
+            RootFlowView()
         } else {
             Button("Unlock with Face ID") {
                 authenticate()

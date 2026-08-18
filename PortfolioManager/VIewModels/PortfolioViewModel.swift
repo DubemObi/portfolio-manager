@@ -12,18 +12,17 @@ class PortfolioViewModel{
     var lastErrorMessage: String?
     
     func refreshPrice(for holding: Holding, context: ModelContext) async{
-        let result = await PriceService.fetchQuote(symbol:  holding.symbol)
+        guard let symbol = holding.symbol else {return}
+        let result = await PriceService.fetchQuote(symbol:  symbol)
         
         switch result {
         case .success(let quote):
-            holding.value = quote.c
+            holding.pricePerUnit = quote.c
             holding.lastUpdated = .now
             lastErrorMessage = nil
-            do{
-                try context.save()
-            }catch {
-                print(error)
-            }
+            
+            try? context.save()
+            
         case .failure(.noInternet):
             lastErrorMessage = "You're offline - showing last know price."
         case .failure(.badResponse), .failure(.decodingFailed):

@@ -14,113 +14,96 @@ struct AddHoldingView: View {
 
     @State private var name: String = ""
     @State private var symbol: String = ""
-    @State private var value: String = ""
+    @State private var quantityOrValue: String = ""
     @State private var selectedAssetClass: AssetClass = .equities
-    @State private var duplicateMessage: String?
+    @State private var isMarketTracked: Bool = true
+    @State private var errorMessage: String?
 
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 16) {
-                Text("Add a holding")
-                    .font(.headline)
-                    .foregroundStyle(AppColors.textPrimary)
+                Text("Add a holding").font(.headline).foregroundStyle(AppColors.textPrimary)
 
-                labeledField("Holding name", text: $name)
-                labeledField("Symbol, e.g. AAPL", text: $symbol)
-                labeledField("Value", text: $value)
+                FormField(label: "Holding name", text: $name)
 
-                assetClassPicker
-                
-                if let duplicateMessage {
-                                    Text(duplicateMessage)
-                                        .font(.footnote)
-                                        .foregroundStyle(.orange)
-                                }
-
-                Button("Save holding") {
-                    saveHolding()
+                ChipPicker(
+                    title: "Asset class",
+                    options: AssetClass.allCases,
+                    displayName: { $0.displayName },
+                    selection: $selectedAssetClass
+                )
+                .onChange(of: selectedAssetClass) { _, newValue in
+                    // Equities are always market-tracked, cash never is;
+                    // everything else defaults to tracked but stays user-editable.
+                    if newValue == .cash { isMarketTracked = false }
+                    if newValue == .equities { isMarketTracked = true }
                 }
-                .padding(12)
-                .frame(maxWidth: .infinity)
-                .background(AppColors.actionPrimary)
-                .foregroundStyle(AppColors.actionPrimaryText)
-                .clipShape(RoundedRectangle(cornerRadius: 12))
+
+                if selectedAssetClass != .cash && selectedAssetClass != .equities {
+                    Toggle("This holding has a ticker symbol I can track", isOn: $isMarketTracked)
+                        .tint(AppColors.action)
+                }
+
+                if isMarketTracked {
+                    FormField(label: "Symbol, e.g. AAPL", text: $symbol)
+                    FormField(label: "Number of shares/units", text: $quantityOrValue, keyboardType: .decimalPad)
+                } else {
+                    FormField(label: "Current value (£)", text: $quantityOrValue, keyboardType: .decimalPad)
+                }
+
+                if let errorMessage {
+                    Text(errorMessage).font(.footnote).foregroundStyle(.orange)
+                }
+
+                Button("Save holding") { saveHolding() }
+                    .padding(12)
+                    .frame(maxWidth: .infinity)
+                    .background(AppColors.actionPrimary)
+                    .foregroundStyle(AppColors.actionPrimaryOn)
+                    .clipShape(RoundedRectangle(cornerRadius: 12))
             }
             .padding()
         }
         .background(AppColors.background)
     }
 
-    private var assetClassPicker: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Text("Asset class")
-                .font(.caption)
-                .foregroundStyle(AppColors.textSecondary)
-
-            HStack(spacing: 8) {
-                ForEach(AssetClass.allCases) { option in
-                    assetClassOption(option)
-                }
-            }
-        }
-    }
-
-    private func assetClassOption(_ option: AssetClass) -> some View {
-        let isSelected = selectedAssetClass == option
-
-        return Text(option.displayName)
-            .font(.footnote)
-            .padding(.horizontal, 12)
-            .padding(.vertical, 6)
-            .background(isSelected ? AppColors.categoryBackground : AppColors.card)
-            .foregroundStyle(isSelected ? AppColors.categoryText : AppColors.textSecondary)
-            .clipShape(Capsule())
-            .overlay(Capsule().stroke(AppColors.border, lineWidth: 0.5))
-            .onTapGesture {
-                selectedAssetClass = option
-            }
-    }
-
     private func saveHolding() {
-        guard
-            let valueAmount = Double(value),
-            !name.isEmpty,
-            !symbol.isEmpty
-        else { return }
+        guard let enteredNumber = Double(quantityOrValue), !name.isEmpty else { return }
 
-        let normalizedSymbol = symbol.uppercased()
-        let existingHoldings = try? context.fetch(FetchDescriptor<Holding>())
+        if isMarketTracked {
+            guard !symbol.isEmpty else {
+                errorMessage = "A symbol is required for a market-tracked holding."
+                return
+            }
+            let normalizedSymbol = symbol.uppercased()
+            let existing = try? context.fetch(FetchDescriptor<Holding>())
+            if existing?.contains(where: { $0.symbol == normalizedSymbol }) == true {
+                errorMessage = "You already own \(normalizedSymbol). Update it from your Portfolio instead."
+                return
+            }
 
-        if existingHoldings?.contains(where: { $0.symbol == normalizedSymbol }) == true {
-            duplicateMessage = "You already own \(normalizedSymbol). Update it from your Portfolio instead."
-            return
+            let holding = Holding(
+                name: name,
+                symbol: normalizedSymbol,
+                quantity: enteredNumber,
+                pricePerUnit: 0,   // unresolved until first "Refresh Price"
+                lastUpdated: nil,
+                assetClass: selectedAssetClass
+            )
+            context.insert(holding)
+        } else {
+            let holding = Holding(
+                name: name,
+                symbol: nil,
+                quantity: enteredNumber,   // the £ value itself, since pricePerUnit stays 1
+                pricePerUnit: 1,
+                lastUpdated: .now,
+                assetClass: selectedAssetClass
+            )
+            context.insert(holding)
         }
 
-        let holding = Holding(
-            name: name,
-            value: valueAmount,
-            symbol: normalizedSymbol,
-            assetClass: selectedAssetClass
-        )
-
-        context.insert(holding)
         try? context.save()
         dismiss()
-            
-    }
-
-    private func labeledField(_ label: String, text: Binding<String>) -> some View {
-        VStack(alignment: .leading, spacing: 4) {
-            Text(label)
-                .font(.caption)
-                .foregroundStyle(AppColors.textSecondary)
-
-            TextField("", text: text)
-                .padding(10)
-                .background(AppColors.card)
-                .foregroundStyle(AppColors.textPrimary)
-                .clipShape(RoundedRectangle(cornerRadius: 12))
-                .overlay(RoundedRectangle(cornerRadius: 12).stroke(AppColors.border, lineWidth: 0.5))
-        }
     }
 }

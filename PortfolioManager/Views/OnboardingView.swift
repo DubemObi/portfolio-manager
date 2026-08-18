@@ -25,12 +25,18 @@ struct OnboardingView: View {
                     .font(.headline)
                     .foregroundStyle(AppColors.textPrimary)
                 
-                labeledField("Monthly income", text: $income)
-                labeledField("Monthly expenses", text: $expenses)
-                labeledField("Monthly debt payments", text: $debtPayments)
-                labeledField("Current savings", text: $savings)
+                FormField(label: "Monthly income", text: $income, keyboardType: .decimalPad)
+                FormField(label: "Monthly expenses", text: $expenses, keyboardType: .decimalPad)
+                FormField(label: "Monthly debt payments", text: $debtPayments, keyboardType: .decimalPad)
+                FormField(label: "Current savings", text: $savings, keyboardType: .decimalPad)
+
+//                labeledField("Monthly income", text: $income)
+//                labeledField("Monthly expenses", text: $expenses)
+//                labeledField("Monthly debt payments", text: $debtPayments)
+//                labeledField("Current savings", text: $savings)
             
-                riskPicker
+                ChipPicker(title: "Risk tolerance", options: RiskCategory.allCases, displayName: { $0.displayName }, selection: $selectedRisk)
+//                riskPicker
                 
                 Button("Continue") {
                     saveProfile()
@@ -38,7 +44,7 @@ struct OnboardingView: View {
                 .padding(12)
                 .frame(maxWidth: .infinity)
                 .background(AppColors.actionPrimary)
-                .foregroundStyle(AppColors.actionPrimaryText)
+                .foregroundStyle(AppColors.actionPrimaryOn)
                 .clipShape(RoundedRectangle(cornerRadius: 12))
             }
             .padding()
@@ -79,63 +85,63 @@ struct OnboardingView: View {
     }
     
 
-    private var riskPicker: some View {
-           VStack(alignment: .leading, spacing: 8) {
-               Text("Risk tolerance")
-                   .font(.caption)
-                   .foregroundStyle(AppColors.textSecondary)
-
-               HStack(spacing: 8) {
-                   ForEach(RiskCategory.allCases) { option in
-                       riskOption(option)
-                   }
-               }
-           }
-       }
-
-       private func riskOption(_ option: RiskCategory) -> some View {
-           let isSelected = selectedRisk == option
-
-           return Text(option.displayName)
-               .font(.footnote)
-               .padding(.horizontal, 12)
-               .padding(.vertical, 6)
-               .background(
-                   isSelected
-                       ? AppColors.categoryBackground
-                       : AppColors.card
-               )
-               .foregroundStyle(
-                   isSelected
-                       ? AppColors.categoryText
-                       : AppColors.textSecondary
-               )
-               .clipShape(Capsule())
-               .overlay(
-                   Capsule()
-                       .stroke(AppColors.border, lineWidth: 0.5)
-               )
-               .onTapGesture {
-                   selectedRisk = option
-               }
-       }
-
-    
-    private func labeledField(_ label: String, text: Binding<String>) -> some View {
-        VStack(alignment: .leading, spacing: 4) {
-            Text(label)
-                .font(.caption)
-                .foregroundStyle(AppColors.textSecondary)
-
-            TextField("", text: text)
-                .keyboardType(.decimalPad)
-                .padding(10)
-                .background(AppColors.card)
-                .foregroundStyle(AppColors.textPrimary)
-                .clipShape(RoundedRectangle(cornerRadius: 12))
-                .overlay(
-                    RoundedRectangle(cornerRadius: 12).stroke(AppColors.border, lineWidth: 0.5)
-                )
-        }
-    }
+//    private var riskPicker: some View {
+//           VStack(alignment: .leading, spacing: 8) {
+//               Text("Risk tolerance")
+//                   .font(.caption)
+//                   .foregroundStyle(AppColors.textSecondary)
+//
+//               HStack(spacing: 8) {
+//                   ForEach(RiskCategory.allCases) { option in
+//                       riskOption(option)
+//                   }
+//               }
+//           }
+//       }
+//
+//       private func riskOption(_ option: RiskCategory) -> some View {
+//           let isSelected = selectedRisk == option
+//
+//           return Text(option.displayName)
+//               .font(.footnote)
+//               .padding(.horizontal, 12)
+//               .padding(.vertical, 6)
+//               .background(
+//                   isSelected
+//                       ? AppColors.tint
+//                       : AppColors.card
+//               )
+//               .foregroundStyle(
+//                   isSelected
+//                       ? AppColors.tintOn
+//                       : AppColors.textSecondary
+//               )
+//               .clipShape(Capsule())
+//               .overlay(
+//                   Capsule()
+//                       .stroke(AppColors.border, lineWidth: 0.5)
+//               )
+//               .onTapGesture {
+//                   selectedRisk = option
+//               }
+//       }
+//
+//    
+//    private func labeledField(_ label: String, text: Binding<String>) -> some View {
+//        VStack(alignment: .leading, spacing: 4) {
+//            Text(label)
+//                .font(.caption)
+//                .foregroundStyle(AppColors.textSecondary)
+//
+//            TextField("", text: text)
+//                .keyboardType(.decimalPad)
+//                .padding(10)
+//                .background(AppColors.card)
+//                .foregroundStyle(AppColors.textPrimary)
+//                .clipShape(RoundedRectangle(cornerRadius: 12))
+//                .overlay(
+//                    RoundedRectangle(cornerRadius: 12).stroke(AppColors.border, lineWidth: 0.5)
+//                )
+//        }
+//    }
 }

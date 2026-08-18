@@ -14,5 +14,6 @@ struct PortfolioManagerApp: App {
         WindowGroup {
             AuthGateView()
         }.modelContainer(for: [Holding.self, FinancialProfile.self] )
+        
     }
 }
