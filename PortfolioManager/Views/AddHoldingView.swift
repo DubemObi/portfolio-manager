@@ -25,8 +25,6 @@ struct AddHoldingView: View {
             VStack(alignment: .leading, spacing: 16) {
                 Text("Add a holding").font(.headline).foregroundStyle(AppColors.textPrimary)
 
-                FormField(label: "Holding name", text: $name)
-
                 ChipPicker(
                     title: "Asset class",
                     options: AssetClass.allCases,
@@ -54,8 +52,10 @@ struct AddHoldingView: View {
                         .padding(.top, 20)
                         .foregroundStyle(AppColors.action)
                     }
+                    FormField(label: "Holding name", text: $name)
                     FormField(label: "Number of shares/units", text: $quantityOrValue, keyboardType: .decimalPad)
                 } else {
+                    FormField(label: "Holding name", text: $name)
                     FormField(label: "Current value (£)", text: $quantityOrValue, keyboardType: .decimalPad)
                 }
 
