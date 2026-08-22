@@ -23,7 +23,7 @@ struct AlertsView: View {
     }
 
     private var pending: [AssetClass: Double] {
-        guard let profile else { return [:] }
+        guard let profile, !holdings.isEmpty else { return [:] }
         let current = PortfolioHealthEngine.currentAllocation(holdings)
         let target = profile.riskCategory.targetAllocation
         let drift = PortfolioHealthEngine.drift(current: current, target: target)
@@ -58,27 +58,28 @@ struct AlertsView: View {
         let driftPercent = Int(abs(drift) * 100)
 
         return VStack(alignment: .leading, spacing: 10) {
-            Group{
+            Group {
                 Text("Rebalance suggested").font(.subheadline).fontWeight(.semibold).foregroundStyle(AppColors.textPrimary)
                 Text("\(assetClass.displayName) has drifted \(driftPercent) points from target. Consider \(direction) this allocation.")
                     .font(.footnote)
                     .foregroundStyle(AppColors.textSecondary)
-                
+
                 HStack(spacing: 8) {
                     Button("Accept") { decide(assetClass, drift, .accepted) }
                         .buttonStyle(.borderedProminent)
                         .tint(AppColors.actionPrimary)
                         .foregroundStyle(AppColors.actionPrimaryOn)
-                    
+
                     Button("Snooze") { decide(assetClass, drift, .snoozed) }
                         .buttonStyle(.bordered)
                         .tint(AppColors.action)
-                    
+
                     Button("Decline") { decide(assetClass, drift, .declined) }
                         .buttonStyle(.bordered)
                         .tint(AppColors.action)
                 }
-            }.padding(.horizontal, 12)
+            }
+            .padding(.horizontal, 12)
         }
         .padding(.vertical, 8)
         .listRowSeparator(.hidden)
