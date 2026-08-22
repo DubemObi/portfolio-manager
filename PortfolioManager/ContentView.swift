@@ -11,6 +11,18 @@ import Foundation
 
 
 struct ContentView: View {
+    @Query private var holdings: [Holding]
+    @Query private var profiles: [FinancialProfile]
+    @Query private var decisions: [RebalanceDecision]
+
+        private var pendingCount: Int {
+            guard let profile = profiles.first else { return 0 }
+            let current = PortfolioHealthEngine.currentAllocation(holdings)
+            let candidates = PortfolioHealthEngine.rebalanceCandidates(drift: PortfolioHealthEngine.drift(current: current, target: profile.riskCategory.targetAllocation))
+            return AlertsEngine.pendingAlerts(candidates: candidates, decisions: decisions).count
+        }
+    
+    
     var body: some View {
         TabView{
             DashboardView().tabItem {
@@ -19,6 +31,8 @@ struct ContentView: View {
             PortfolioView().tabItem {
                 Label("Portfolio", systemImage: "chart.pie.fill")
             }
+            AlertsView().tabItem { Label("Alerts", systemImage: "bell.fill") }
+                .badge(pendingCount)
             InsightsView().tabItem { Label("Insights", systemImage: "sparkles") }
 //            OnboardingView().tabItem {
 //                Label("Onboarding`", systemImage: "chart.pie.fill")

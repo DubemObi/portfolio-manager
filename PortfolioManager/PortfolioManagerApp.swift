@@ -13,7 +13,7 @@ struct PortfolioManagerApp: App {
     var body: some Scene {
         WindowGroup {
             AuthGateView()
-        }.modelContainer(for: [Holding.self, FinancialProfile.self] )
+        }.modelContainer(for: [Holding.self, FinancialProfile.self, RebalanceDecision.self, Contribution.self] )
         
     }
 }

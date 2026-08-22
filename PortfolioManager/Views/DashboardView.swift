@@ -34,6 +34,23 @@ struct DashboardView: View {
         NavigationStack {
             ScrollView {
                 VStack(spacing: 16) {
+                    if let profile {
+                        Text("Profile confirmed \(profile.lastConfirmed.formatted(.relative(presentation: .named)))")
+                            .font(.caption)
+                            .foregroundStyle(AppColors.textSecondary)
+                    }
+                    
+                    if let profile {
+                        let daysSinceConfirmed = Calendar.current.dateComponents([.day], from: profile.lastConfirmed, to: .now).day ?? 0
+                        let daysSinceRisk = Calendar.current.dateComponents([.day], from: profile.lastRiskAssessment, to: .now).day ?? 0
+
+                        if daysSinceConfirmed > 90 {
+                            reminderBanner("It's been \(daysSinceConfirmed) days - update your income and expenses.")
+                        }
+                        if daysSinceRisk > 180 {
+                            reminderBanner("It's been over 6 months - re-check your risk tolerance still fits.")
+                        }
+                    }
                     heroCard
 
                     sectionCard(title: "Portfolio Health") {
@@ -113,6 +130,14 @@ struct DashboardView: View {
             Text(label).foregroundStyle(AppColors.textPrimary)
             Spacer()
             Text("£\(value ?? 0, specifier: "%.2f")").foregroundStyle(AppColors.textSecondary)
+        }
+    }
+    
+    private func reminderBanner(_ text: String) -> some View {
+        Button { isShowingProfileEditor = true } label: {
+            Text(text).font(.footnote).foregroundStyle(AppColors.warning)
+                .padding(10).frame(maxWidth: .infinity, alignment: .leading)
+                .background(AppColors.warningBackground).clipShape(RoundedRectangle(cornerRadius: 10))
         }
     }
 }

@@ -16,6 +16,6 @@ struct EmptyStateView: View {
                 .multilineTextAlignment(.center)
         }
         .padding(40)
-        .frame(maxWidth: .infinity)
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 }

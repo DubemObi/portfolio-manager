@@ -55,6 +55,10 @@ struct PortfolioHealthEngine {
     
 
     static func healthScore(holdings: [Holding], profile: FinancialProfile) -> HealthScore {
+        guard totalValue(holdings) > 0 else {
+                return HealthScore(overall: 0, assetClassCoverage: 0, riskAlignment: 0)
+            }
+        
         let current = currentAllocation(holdings)
         let target = profile.riskCategory.targetAllocation
         let driftValues = drift(current: current, target: target)

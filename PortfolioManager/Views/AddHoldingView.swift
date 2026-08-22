@@ -18,6 +18,7 @@ struct AddHoldingView: View {
     @State private var selectedAssetClass: AssetClass = .equities
     @State private var isMarketTracked: Bool = true
     @State private var errorMessage: String?
+    @State private var isShowingSymbolSearch = false
 
     var body: some View {
         ScrollView {
@@ -33,26 +34,33 @@ struct AddHoldingView: View {
                     selection: $selectedAssetClass
                 )
                 .onChange(of: selectedAssetClass) { _, newValue in
-                    // Equities are always market-tracked, cash never is;
-                    // everything else defaults to tracked but stays user-editable.
                     if newValue == .cash { isMarketTracked = false }
                     if newValue == .equities { isMarketTracked = true }
                 }
 
                 if selectedAssetClass != .cash && selectedAssetClass != .equities {
                     Toggle("This holding has a ticker symbol I can track", isOn: $isMarketTracked)
-                        .tint(AppColors.action)
+                        .tint(AppColors.actionPrimary)
                 }
 
                 if isMarketTracked {
-                    FormField(label: "Symbol, e.g. AAPL", text: $symbol)
+                    HStack {
+                        FormField(label: "Symbol, e.g. AAPL", text: $symbol)
+                        Button {
+                            isShowingSymbolSearch = true
+                        } label: {
+                            Image(systemName: "magnifyingglass")
+                        }
+                        .padding(.top, 20)
+                        .foregroundStyle(AppColors.action)
+                    }
                     FormField(label: "Number of shares/units", text: $quantityOrValue, keyboardType: .decimalPad)
                 } else {
                     FormField(label: "Current value (£)", text: $quantityOrValue, keyboardType: .decimalPad)
                 }
 
                 if let errorMessage {
-                    Text(errorMessage).font(.footnote).foregroundStyle(.orange)
+                    Text(errorMessage).font(.footnote).foregroundStyle(AppColors.warning)
                 }
 
                 Button("Save holding") { saveHolding() }
@@ -65,6 +73,12 @@ struct AddHoldingView: View {
             .padding()
         }
         .background(AppColors.background)
+        .sheet(isPresented: $isShowingSymbolSearch) {
+            SymbolSearchView { match in
+                symbol = match.symbol
+                if name.isEmpty { name = match.description.capitalized }
+            }
+        }
     }
 
     private func saveHolding() {
@@ -82,28 +96,29 @@ struct AddHoldingView: View {
                 return
             }
 
-            let holding = Holding(
-                name: name,
-                symbol: normalizedSymbol,
-                quantity: enteredNumber,
-                pricePerUnit: 0,   // unresolved until first "Refresh Price"
-                lastUpdated: nil,
-                assetClass: selectedAssetClass
-            )
-            context.insert(holding)
+            Task {
+                let result = await PriceService.fetchQuote(symbol: normalizedSymbol)
+                let (price, lastUpdated): (Double, Date?) = {
+                    if case .success(let quote) = result { return (quote.c, .now) }
+                    return (0, nil)
+                }()
+
+                let holding = Holding(
+                    name: name, symbol: normalizedSymbol, quantity: enteredNumber,
+                    pricePerUnit: price, lastUpdated: lastUpdated, assetClass: selectedAssetClass
+                )
+                context.insert(holding)
+                try? context.save()
+                dismiss()
+            }
         } else {
             let holding = Holding(
-                name: name,
-                symbol: nil,
-                quantity: enteredNumber,   // the £ value itself, since pricePerUnit stays 1
-                pricePerUnit: 1,
-                lastUpdated: .now,
-                assetClass: selectedAssetClass
+                name: name, symbol: nil, quantity: enteredNumber,
+                pricePerUnit: 1, lastUpdated: .now, assetClass: selectedAssetClass
             )
             context.insert(holding)
+            try? context.save()
+            dismiss()
         }
-
-        try? context.save()
-        dismiss()
     }
 }

@@ -41,4 +41,36 @@ struct PriceService {
             return .failure(.badResponse(statusCode: -1))
         }
     }
+    
+    
+    static func searchSymbols(query: String) async -> Result<[FinnhubSymbolMatch], PriceFetchError> {
+            guard let encodedQuery = query.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) else {
+                return .failure(.badResponse(statusCode: -1))
+            }
+            let urlString = "https://finnhub.io/api/v1/search?q=\(encodedQuery)&token=\(Secrets.finnhubAPIKey)"
+
+            guard let url = URL(string: urlString) else {
+                return .failure(.badResponse(statusCode: -1))
+            }
+
+            do {
+                let (data, response) = try await URLSession.shared.data(from: url)
+
+                guard let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode == 200 else {
+                    let statusCode = (response as? HTTPURLResponse)?.statusCode ?? -1
+                    return .failure(.badResponse(statusCode: statusCode))
+                }
+
+                guard let decoded = try? JSONDecoder().decode(FinnhubSymbolSearchResponse.self, from: data) else {
+                    return .failure(.decodingFailed)
+                }
+
+                return .success(decoded.result)
+
+            } catch let error as URLError where error.code == .notConnectedToInternet {
+                return .failure(.noInternet)
+            } catch {
+                return .failure(.badResponse(statusCode: -1))
+            }
+        }
 }
