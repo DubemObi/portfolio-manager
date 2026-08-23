@@ -9,6 +9,7 @@ import SwiftData
 struct OnboardingView: View {
     @Environment(\.modelContext) private var context
     @Environment(\.dismiss) private var dismiss
+    @State private var vm = ProfileViewModel()
 
     @State private var name: String = ""
     @State private var income: String = ""
@@ -57,8 +58,19 @@ struct OnboardingView: View {
 
                 FormField(label: "Target amount (£, optional)", text: $targetAmount, keyboardType: .decimalPad)
 
+                if let errorMessage = vm.errorMessage {
+                    Text(errorMessage).font(.footnote).foregroundStyle(AppColors.warning)
+                }
+
                 Button("Continue") {
-                    saveProfile()
+                    let saved = vm.saveProfile(
+                        name: name, income: income, expenses: expenses,
+                        debtPayments: debtPayments, savings: savings,
+                        risk: selectedRisk, goal: selectedGoal,
+                        customGoal: customGoal, targetAmount: targetAmount,
+                        context: context
+                    )
+                    if saved { dismiss() }
                 }
                 .padding(12)
                 .frame(maxWidth: .infinity)
@@ -69,56 +81,5 @@ struct OnboardingView: View {
             .padding()
         }
         .background(AppColors.background)
-    }
-
-    private func saveProfile() {
-        guard
-            let incomeValue = Double(income),
-            let expensesValue = Double(expenses)
-        else { return }
-
-        let debtValue = Double(debtPayments) ?? 0
-        let savingsValue = Double(savings) ?? 0
-        let targetAmountValue = Double(targetAmount)
-        let customGoalValue: String? = selectedGoal == .somethingElse ? customGoal : nil
-
-        let existingProfiles = try? context.fetch(FetchDescriptor<FinancialProfile>())
-
-        if let existing = existingProfiles?.first {
-            existing.name = name
-            existing.monthlyIncome = incomeValue
-            existing.monthlyExpenses = expensesValue
-            existing.monthlyDebtPayments = debtValue
-            existing.currentSavings = savingsValue
-            existing.riskCategory = selectedRisk
-            existing.lastConfirmed = .now
-            existing.lastRiskAssessment = .now
-            existing.financialGoal = selectedGoal
-            existing.customGoalDescription = customGoalValue
-            existing.targetAmount = targetAmountValue
-        } else {
-            let profile = FinancialProfile(
-                name: name,
-                monthlyIncome: incomeValue,
-                monthlyExpenses: expensesValue,
-                monthlyDebtPayments: debtValue,
-                currentSavings: savingsValue,
-                riskCategory: selectedRisk,
-                financialGoal: selectedGoal,
-                customGoalDescription: customGoalValue,
-                targetAmount: targetAmountValue
-            )
-            context.insert(profile)
-        }
-
-        try? context.save()
-
-        Task {
-            await NotificationScheduler.requestPermission()
-            NotificationScheduler.scheduleCheckInReminder(from: .now)
-            NotificationScheduler.scheduleRiskReminder(from: .now)
-        }
-
-        dismiss()
     }
 }

@@ -8,7 +8,7 @@
 
 import SwiftUI
 
-enum ThemeOverride: String, CaseIterable, Identifiable {
+enum ThemeToggle: String, CaseIterable, Identifiable {
     case system, light, dark
 
     var id: String { rawValue }

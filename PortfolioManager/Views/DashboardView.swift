@@ -9,14 +9,17 @@ import SwiftUI
 import SwiftData
 
 struct DashboardView: View {
-    @Environment(\.modelContext) private var context
-    @State private var vm = DashboardViewModel()
     @State private var isShowingProfileEditor = false
-    
+    @State private var isShowingSettings = false
+
     @Query private var holdings: [Holding]
     @Query private var profiles: [FinancialProfile]
 
     private var profile: FinancialProfile? { profiles.first }
+
+    private var totalPortfolioValue: Double {
+        PortfolioHealthEngine.totalValue(holdings)
+    }
 
     private var healthScore: HealthScore {
         guard let profile else { return HealthScore(overall: 0, assetClassCoverage: 0, riskAlignment: 0) }
@@ -26,7 +29,7 @@ struct DashboardView: View {
     private var disposableIncome: Double {
         guard let profile else { return 0 }
         return AffordabilityEngine.disposableIncome(
-                income: profile.monthlyIncome, expenses: profile.monthlyExpenses, debtPayments: profile.monthlyDebtPayments
+            income: profile.monthlyIncome, expenses: profile.monthlyExpenses, debtPayments: profile.monthlyDebtPayments
         )
     }
 
@@ -38,9 +41,7 @@ struct DashboardView: View {
                         Text("Profile confirmed \(profile.lastConfirmed.formatted(.relative(presentation: .named)))")
                             .font(.caption)
                             .foregroundStyle(AppColors.textSecondary)
-                    }
-                    
-                    if let profile {
+
                         let daysSinceConfirmed = Calendar.current.dateComponents([.day], from: profile.lastConfirmed, to: .now).day ?? 0
                         let daysSinceRisk = Calendar.current.dateComponents([.day], from: profile.lastRiskAssessment, to: .now).day ?? 0
 
@@ -51,18 +52,19 @@ struct DashboardView: View {
                             reminderBanner("It's been over 6 months - re-check your risk tolerance still fits.")
                         }
                     }
+
                     heroCard
 
                     sectionCard(title: "Portfolio Health") {
-                        row("Overall", vm.healthScore.overall)
-                        row("Diversification", vm.healthScore.diversification)
+                        row("Overall", healthScore.overall)
+                        row("Diversification", healthScore.diversification)
                         row("Risk alignment", healthScore.riskAlignment)
                     }
 
                     sectionCard(title: "Financial Capacity") {
-                        moneyRow("Monthly income", vm.profile?.monthlyIncome)
-                        moneyRow("Expenses", vm.profile?.monthlyExpenses)
-                        moneyRow("Debt payments", vm.profile?.monthlyDebtPayments)
+                        moneyRow("Monthly income", profile?.monthlyIncome)
+                        moneyRow("Expenses", profile?.monthlyExpenses)
+                        moneyRow("Debt payments", profile?.monthlyDebtPayments)
                         moneyRow("Disposable income", disposableIncome)
                     }
                 }
@@ -71,12 +73,12 @@ struct DashboardView: View {
             .background(AppColors.background)
             .navigationTitle("Dashboard")
             .toolbar {
-                Button { isShowingProfileEditor = true } label: {
-                    Image(systemName: "person.crop.circle")
+                Button { isShowingSettings = true } label: {
+                    Image(systemName: "gearshape.fill")
                 }
             }
             .sheet(isPresented: $isShowingProfileEditor) { OnboardingView() }
-            .onAppear { vm.load(context: context) }
+            .sheet(isPresented: $isShowingSettings) { SettingsView() }
         }
     }
 
@@ -92,7 +94,7 @@ struct DashboardView: View {
                 Text("PORTFOLIO").font(.caption2).foregroundStyle(.white.opacity(0.5))
             }
             Text("Total portfolio value").font(.caption).foregroundStyle(.white.opacity(0.6))
-            Text("£\(vm.totalPortfolioValue, specifier: "%.2f")").font(.title).foregroundStyle(.white)
+            Text("£\(totalPortfolioValue, specifier: "%.2f")").font(.title).foregroundStyle(.white)
             Text("Health score \(Int(healthScore.overall))")
                 .font(.caption).fontWeight(.semibold)
                 .padding(.horizontal, 10).padding(.vertical, 4)
@@ -132,7 +134,7 @@ struct DashboardView: View {
             Text("£\(value ?? 0, specifier: "%.2f")").foregroundStyle(AppColors.textSecondary)
         }
     }
-    
+
     private func reminderBanner(_ text: String) -> some View {
         Button { isShowingProfileEditor = true } label: {
             Text(text).font(.footnote).foregroundStyle(AppColors.warning)

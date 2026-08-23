@@ -32,6 +32,9 @@ struct ContentView: View {
             AlertsView()
                 .tabItem { Label("Alerts", systemImage: "bell.fill") }
                 .badge(pendingCount)
+            
+            ProjectionsView()
+                .tabItem { Label("Projections", systemImage: "chart.line.uptrend.xyaxis") }
 
             InsightsView()
                 .tabItem { Label("Insights", systemImage: "sparkles") }
