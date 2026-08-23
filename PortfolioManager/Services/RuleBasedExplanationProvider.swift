@@ -35,6 +35,10 @@ struct RuleBasedExplanationProvider: ExplanationProvider {
             recommendations.append("Note: \(staleNames.joined(separator: ", ")) haven't been updated recently - these figures may be out of date.")
         }
 
-        return PortfolioExplanation(overview: overview, insights: insights, recommendations: recommendations)
-    }
+        return PortfolioExplanation(
+            overview: overview,
+            insights: insights,
+            recommendations: recommendations,
+            source: .ruleBased
+        )    }
 }

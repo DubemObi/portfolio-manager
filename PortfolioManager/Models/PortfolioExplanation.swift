@@ -7,7 +7,6 @@
 
 import Foundation
 
-
 /// Everything the explanation layer needs to know, already computed.
 /// Neither provider touches raw Holding/FinancialProfile objects directly.
 struct PortfolioExplanationInput {
@@ -19,12 +18,21 @@ struct PortfolioExplanationInput {
     let staleHoldingNames: [String]
 }
 
+/// Which provider actually produced an explanation. The View uses this to
+/// decide whether follow-up questions are offered - that feature is AI-only,
+/// since RuleBasedExplanationProvider has no way to answer an open-ended question.
+enum ExplanationSource {
+    case ai
+    case ruleBased
+}
+
 /// The shared result shape both providers return, so the UI never needs
-/// to know which one actually produced it.
+/// to know *which* one produced it - except for source, used only to
+/// decide whether to show follow-up question chips.
 struct PortfolioExplanation {
     var overview: String
     var insights: [String]
     var recommendations: [String]
+    var source: ExplanationSource
+    var suggestedQuestions: [String] = []
 }
-
-

@@ -1,7 +1,19 @@
+//
+//  OnDeviceAIExplanationProvider.swift
+//  PortfolioManager
+//
+//  A class, not a struct - it holds a live LanguageModelSession after
+//  explain() returns, so follow-up questions continue the same
+//  conversation. One instance is owned by InsightsViewModel for the
+//  lifetime of a review-and-follow-up thread, and explicitly discarded
+//  via invalidateSession() when that thread ends (see InsightsViewModel).
+//
+
 import Foundation
 import FoundationModels
 
-struct OnDeviceAIExplanationProvider: ExplanationProvider {
+final class OnDeviceAIExplanationProvider: ExplanationProvider {
+    private var session: LanguageModelSession?
 
     func explain(holdings: [Holding], profile: FinancialProfile) async -> PortfolioExplanation? {
         guard SystemLanguageModel.default.isAvailable else { return nil }
@@ -16,8 +28,7 @@ struct OnDeviceAIExplanationProvider: ExplanationProvider {
             expenses: profile.monthlyExpenses,
             debtPayments: profile.monthlyDebtPayments
         )
-        let staleNames = holdings.filter(\.isStale).map(\.name)   // ← new line
-
+        let staleNames = holdings.filter(\.isStale).map(\.name)
 
         let input = PortfolioExplanationInput(
             totalValue: PortfolioHealthEngine.totalValue(holdings),
@@ -26,29 +37,76 @@ struct OnDeviceAIExplanationProvider: ExplanationProvider {
             healthScore: score,
             disposableIncome: disposable,
             staleHoldingNames: staleNames
-            
-            
         )
 
         let instructions = Instructions {
             "You are a financial portfolio explainer inside a personal finance app."
             "You never give specific buy/sell financial advice - only general observations about balance and diversification."
             "If any holdings are flagged as not recently updated, mention this as a caveat rather than treating those figures as fully reliable."
+            "The user may ask up to two follow-up questions about this portfolio. Answer the first naturally, offering further questions. The second follow-up answer should read as a concluding remark that wraps up the conversation."
         }
-        let session = LanguageModelSession(instructions: instructions)
+        let newSession = LanguageModelSession(instructions: instructions)
 
         do {
-            let response = try await session.respond(to: buildPrompt(from: input), generating: AIPortfolioExplanation.self)
+            let response = try await newSession.respond(to: buildPrompt(from: input), generating: AIPortfolioExplanation.self)
             let ai = response.content
-            return PortfolioExplanation(overview: ai.overview, insights: ai.insights, recommendations: ai.recommendations)
+            session = newSession
+            return PortfolioExplanation(
+                overview: ai.overview,
+                insights: ai.insights,
+                recommendations: ai.recommendations,
+                source: .ai,
+                suggestedQuestions: ai.suggestedQuestions
+            )
         } catch {
             print("On-device AI failed, falling back: \(error.localizedDescription)")
+            session = nil
             return nil
         }
     }
 
-    /// Private - this prompt-building logic only ever makes sense in the
-    /// context of this provider, so it has no reason to be visible elsewhere.
+    /// First-level follow-up: answers the question and offers a second
+    /// layer of questions.
+    func askFollowUp(_ question: String) async -> FollowUpExchange? {
+        guard let session else { return nil }
+
+        do {
+            let response = try await session.respond(to: question, generating: AIFollowUpAnswer.self)
+            let result = response.content
+            return FollowUpExchange(question: question, answer: result.answer, suggestedQuestions: result.suggestedQuestions)
+        } catch {
+            print("Follow-up question failed: \(error.localizedDescription)")
+            return nil
+        }
+    }
+
+    /// Second-level follow-up: the last one allowed in a thread. Uses
+    /// AIFollowUpConclusion, which has no suggestedQuestions field at all -
+    /// the conversation can't branch a third time by construction, not
+    /// just because the UI chooses to hide something.
+    func askFinalFollowUp(_ question: String) async -> FollowUpExchange? {
+        guard let session else { return nil }
+
+        let prompt = "This is the final follow-up question in this conversation. Answer it and wrap up the discussion with a concluding tone: \(question)"
+
+        do {
+            let response = try await session.respond(to: prompt, generating: AIFollowUpConclusion.self)
+            let result = response.content
+            return FollowUpExchange(question: question, answer: result.answer, suggestedQuestions: [])
+        } catch {
+            print("Final follow-up question failed: \(error.localizedDescription)")
+            return nil
+        }
+    }
+
+    /// Explicitly ends the conversation, freeing the session. Called when
+    /// the user leaves Insights (see InsightsView's .onDisappear) - the
+    /// TabView keeps this ViewModel alive across tab switches, so nothing
+    /// would free this on its own without an explicit call.
+    func invalidateSession() {
+        session = nil
+    }
+
     private func buildPrompt(from input: PortfolioExplanationInput) -> String {
         var lines: [String] = []
 
@@ -70,7 +128,7 @@ struct OnDeviceAIExplanationProvider: ExplanationProvider {
                 lines.append("- \(assetClass.displayName) is \(direction) by \(Int(abs(drift) * 100)) percentage points")
             }
         }
-        
+
         if !input.staleHoldingNames.isEmpty {
             lines.append("Note: the following holdings have not been revalued recently and may be inaccurate: \(input.staleHoldingNames.joined(separator: ", "))")
         }
