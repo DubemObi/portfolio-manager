@@ -10,7 +10,7 @@ import SwiftData
 
 struct DashboardView: View {
     @State private var isShowingProfileEditor = false
-    @State private var isShowingSettings = false
+    @State private var isShowingProfile = false
 
     @Query private var holdings: [Holding]
     @Query private var profiles: [FinancialProfile]
@@ -73,12 +73,12 @@ struct DashboardView: View {
             .background(AppColors.background)
             .navigationTitle("Dashboard")
             .toolbar {
-                Button { isShowingSettings = true } label: {
+                Button { isShowingProfile = true } label: {
                     Image(systemName: "gearshape.fill")
                 }
             }
-            .sheet(isPresented: $isShowingProfileEditor) { OnboardingView() }
-            .sheet(isPresented: $isShowingSettings) { SettingsView() }
+            .sheet(isPresented: $isShowingProfileEditor) { ThemedSheet { OnboardingView() } }
+            .sheet(isPresented: $isShowingProfile) { ThemedSheet { ProfileView() } }
         }
     }
 

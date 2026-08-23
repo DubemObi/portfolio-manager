@@ -10,12 +10,12 @@ import SwiftData
 
 @main
 struct PortfolioManagerApp: App {
-    @AppStorage("themeToggle") private var themeToggleRaw: String = ThemeToggle.system.rawValue
+    @AppStorage("themeToggle") private var themeToggleRaw: String = ThemeToggle.dark.rawValue
 
     var body: some Scene {
         WindowGroup {
             AuthGateView()
-                .preferredColorScheme(ThemeToggle(rawValue: themeToggleRaw)?.colorScheme)
+                .preferredColorScheme((ThemeToggle(rawValue: themeToggleRaw) ?? .dark).colorScheme)
 
         }.modelContainer(for: [Holding.self, FinancialProfile.self, RebalanceDecision.self, Contribution.self] )
         
