@@ -11,6 +11,7 @@ import SwiftData
 struct UpdateValueView: View {
     @Environment(\.modelContext) private var context
     @Environment(\.dismiss) private var dismiss
+    @State private var vm = HoldingsViewModel()
 
     let holding: Holding
     @State private var newValue: String
@@ -33,6 +34,10 @@ struct UpdateValueView: View {
 
                 FormField(label: "Current value (£)", text: $newValue, keyboardType: .decimalPad)
 
+                if let errorMessage = vm.lastErrorMessage {
+                    Text(errorMessage).font(.footnote).foregroundStyle(AppColors.warning)
+                }
+
                 Button("Save") { saveValue() }
                     .padding(12)
                     .frame(maxWidth: .infinity)
@@ -46,14 +51,11 @@ struct UpdateValueView: View {
     }
 
     private func saveValue() {
-        guard let value = Double(newValue) else { return }
-
-        // pricePerUnit stays fixed at 1 for manually-valued holdings,
-        // so quantity is the pound value directly - same convention
-        // used when this holding was first created.
-        holding.quantity = value
-        holding.lastUpdated = .now
-        try? context.save()
-        dismiss()
+        guard let value = Double(newValue) else {
+            vm.lastErrorMessage = "Enter a valid number."
+            return
+        }
+        let saved = vm.updateValue(for: holding, newValue: value, context: context)
+        if saved { dismiss() }
     }
 }

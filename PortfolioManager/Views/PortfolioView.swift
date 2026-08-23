@@ -9,7 +9,7 @@ import SwiftData
 struct PortfolioView: View {
     @Environment(\.modelContext) private var context
     @Query private var holdings: [Holding]
-    @State private var vm = PortfolioViewModel()
+    @State private var vm = HoldingsViewModel()
     @State private var isShowingAddHolding = false
     @State private var holdingToUpdate: Holding?
     @State private var holdingToContribute: Holding?

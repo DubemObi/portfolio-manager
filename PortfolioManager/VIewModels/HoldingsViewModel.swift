@@ -1,5 +1,5 @@
 //
-//  PortfolioViewModel.swift
+//  HoldingsViewModel.swift
 //  PortfolioManager
 //
 
@@ -7,8 +7,81 @@ import SwiftData
 import Foundation
 
 @Observable
-class PortfolioViewModel {
+class HoldingsViewModel {
     var lastErrorMessage: String?
+
+    // MARK: - Add
+
+    /// Creates a new Holding. For market-tracked holdings, attempts a
+    /// best-effort live price fetch before saving (falls back to £0/nil
+    /// if offline - non-blocking, matches the app's offline-first design).
+    /// Returns true on success (caller should dismiss).
+    @discardableResult
+    func addHolding(
+        name: String,
+        symbol: String?,
+        quantity: Double,
+        assetClass: AssetClass,
+        context: ModelContext
+    ) async -> Bool {
+        if let symbol {
+            let normalizedSymbol = symbol.uppercased()
+
+            let existing = try? context.fetch(FetchDescriptor<Holding>())
+            if existing?.contains(where: { $0.symbol == normalizedSymbol }) == true {
+                lastErrorMessage = "You already own \(normalizedSymbol). Update it from your Portfolio instead."
+                return false
+            }
+
+            let result = await PriceService.fetchQuote(symbol: normalizedSymbol)
+            let (price, lastUpdated): (Double, Date?) = {
+                if case .success(let quote) = result { return (quote.c, .now) }
+                return (0, nil)
+            }()
+
+            let holding = Holding(
+                name: name, symbol: normalizedSymbol, quantity: quantity,
+                pricePerUnit: price, lastUpdated: lastUpdated, assetClass: assetClass
+            )
+            context.insert(holding)
+        } else {
+            let holding = Holding(
+                name: name, symbol: nil, quantity: quantity,
+                pricePerUnit: 1, lastUpdated: .now, assetClass: assetClass
+            )
+            context.insert(holding)
+        }
+
+        do {
+            try context.save()
+        } catch {
+            lastErrorMessage = "Couldn't save this holding. Please try again."
+            return false
+        }
+
+        lastErrorMessage = nil
+        return true
+    }
+
+    // MARK: - Update (manually-valued holdings)
+
+    @discardableResult
+    func updateValue(for holding: Holding, newValue: Double, context: ModelContext) -> Bool {
+        holding.quantity = newValue
+        holding.lastUpdated = .now
+
+        do {
+            try context.save()
+        } catch {
+            lastErrorMessage = "Couldn't save this update. Please try again."
+            return false
+        }
+
+        lastErrorMessage = nil
+        return true
+    }
+
+    // MARK: - Refresh
 
     func refreshPrice(for holding: Holding, context: ModelContext) async {
         guard let symbol = holding.symbol else { return }
@@ -71,6 +144,8 @@ class PortfolioViewModel {
             ? "\(failureCount) of \(trackedHoldings.count) holdings couldn't be refreshed."
             : nil
     }
+
+    // MARK: - Contribute
 
     func contribute(to holding: Holding, quantityToAdd: Double, context: ModelContext) {
         holding.quantity += quantityToAdd
