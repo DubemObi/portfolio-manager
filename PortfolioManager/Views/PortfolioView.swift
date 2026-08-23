@@ -14,6 +14,7 @@ struct PortfolioView: View {
     @State private var holdingToUpdate: Holding?
     @State private var holdingToContribute: Holding?
     @State private var isRefreshingAll = false
+    @State private var isShowingHistory = false
 
     var body: some View {
         NavigationStack {
@@ -46,6 +47,8 @@ struct PortfolioView: View {
             .navigationTitle("Portfolio")
             .toolbar {
                 ToolbarItemGroup(placement: .topBarTrailing) {
+                    Button { isShowingHistory = true } label: { Image(systemName: "clock.arrow.circlepath") }
+
                     Button {
                         Task {
                             isRefreshingAll = true
@@ -66,6 +69,7 @@ struct PortfolioView: View {
             }
             .sheet(isPresented: $isShowingAddHolding) { AddHoldingView() }
             .sheet(item: $holdingToUpdate) { holding in UpdateValueView(holding: holding) }
+            .sheet(isPresented: $isShowingHistory) { HistoryView() }
             .sheet(item: $holdingToContribute) { holding in
                 ContributeView(holding: holding) { quantity in
                     vm.contribute(to: holding, quantityToAdd: quantity, context: context)
