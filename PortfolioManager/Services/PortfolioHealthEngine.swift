@@ -81,4 +81,20 @@ struct PortfolioHealthEngine {
 
         return HealthScore(overall: overall, assetClassCoverage: coverageScore, riskAlignment: riskAlignmentScore)
     }
+    
+    
+    /// The N largest holdings by current value, descending.
+    static func topHoldings(_ holdings: [Holding], limit: Int = 5) -> [Holding] {
+        Array(holdings.sorted { $0.value > $1.value }.prefix(limit))
+    }
+
+    /// What fraction of total portfolio value the top N holdings represent -
+    /// a simple, honestly-labeled concentration figure, not a weighted
+    /// "concentration score" implying more statistical rigor than it has.
+    static func concentrationShare(_ holdings: [Holding], topCount: Int = 5) -> Double {
+        let total = totalValue(holdings)
+        guard total > 0 else { return 0 }
+        let topSum = topHoldings(holdings, limit: topCount).reduce(0) { $0 + $1.value }
+        return topSum / total
+    }
 }

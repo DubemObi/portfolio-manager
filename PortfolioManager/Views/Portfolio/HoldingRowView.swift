@@ -17,8 +17,8 @@ struct HoldingRowView: View {
         HStack(spacing: 12) {
             Image(systemName: holding.assetClass.icon)
                 .frame(width: 36, height: 36)
-                .background(AppColors.tint)
-                .foregroundStyle(AppColors.tintOn)
+                .background(holding.assetClass.colorBackground)
+                .foregroundStyle(holding.assetClass.color)
                 .clipShape(Circle())
 
             VStack(alignment: .leading, spacing: 2) {

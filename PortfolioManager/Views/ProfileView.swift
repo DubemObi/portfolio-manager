@@ -21,16 +21,29 @@ struct ProfileView: View {
             List {
                 Section("Your details") {
                     if let profile {
-                        infoRow("Name", profile.name.isEmpty ? "Not set" : profile.name)
-                        infoRow("Risk tolerance", profile.riskCategory.displayName)
-                        infoRow("Goal", goalDisplayText(for: profile))
+                        infoRow(icon: "person.fill", label: "Name", value: profile.name.isEmpty ? "Not set" : profile.name)
+
+                        HStack {
+                            Image(systemName: profile.riskCategory.icon)
+                                .frame(width: 22)
+                                .foregroundStyle(profile.riskCategory.color)
+                            Text("Risk tolerance").foregroundStyle(AppColors.textPrimary)
+                            Spacer()
+                            Text(profile.riskCategory.displayName)
+                                .font(.caption)
+                                .fontWeight(.semibold)
+                                .padding(.horizontal, 10).padding(.vertical, 4)
+                                .background(profile.riskCategory.colorBackground)
+                                .foregroundStyle(profile.riskCategory.color)
+                                .clipShape(Capsule())
+                        }
+
+                        infoRow(icon: "flag.fill", label: "Goal", value: goalDisplayText(for: profile))
+
                         if let targetAmount = profile.targetAmount {
-                            infoRow(
-                                "Target amount",
-                                targetAmount.formatted(
-                                    .currency(code: "GBP")
-                                    .precision(.fractionLength(0))
-                                )
+                            infoRow(icon: "target", label: "Target amount", value: targetAmount.formatted(
+                                .currency(code: "GBP")
+                                    .precision(.fractionLength(0)))
                             )
                         }
                     }
@@ -46,12 +59,12 @@ struct ProfileView: View {
                             Text("Edit profile").fontWeight(.semibold)
                             Spacer()
                         }
-                        .foregroundStyle(AppColors.actionOn)
+                        .foregroundStyle(AppColors.actionPrimaryOn)
                         .padding(.vertical, 4)
                     }
                     .buttonStyle(.borderless)
                 }
-                .listRowBackground(AppColors.action)
+                .listRowBackground(AppColors.actionPrimary)
 
                 Section("Appearance") {
                     HStack {
@@ -62,9 +75,9 @@ struct ProfileView: View {
                         } label: {
                             Image(systemName: currentTheme.icon)
                                 .font(.title3)
-                                .foregroundStyle(AppColors.textPrimary)
+                                .foregroundStyle(AppColors.brand)
                                 .padding(8)
-                                .background(AppColors.tint)
+                                .background(AppColors.brand.opacity(0.12))
                                 .clipShape(Circle())
                         }
                         .buttonStyle(.borderless)
@@ -73,7 +86,7 @@ struct ProfileView: View {
                 .listRowBackground(AppColors.card)
 
                 Section("About") {
-                    infoRow("Version", Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "1.0")
+                    infoRow(icon: "info.circle.fill", label: "Version", value: Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "1.0")
                     Text("PortfolioManager helps you track a simulated investment portfolio, understand its health, and get explainable, on-device guidance - entirely offline-first.")
                         .font(.footnote)
                         .foregroundStyle(AppColors.textSecondary)
@@ -96,8 +109,11 @@ struct ProfileView: View {
         return profile.financialGoal.displayName
     }
 
-    private func infoRow(_ label: String, _ value: String) -> some View {
+    private func infoRow(icon: String, label: String, value: String) -> some View {
         HStack {
+            Image(systemName: icon)
+                .frame(width: 22)
+                .foregroundStyle(AppColors.brand)
             Text(label).foregroundStyle(AppColors.textPrimary)
             Spacer()
             Text(value).foregroundStyle(AppColors.textSecondary)

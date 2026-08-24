@@ -15,8 +15,6 @@ struct InsightsView: View {
         Set(vm.followUps.map(\.question))
     }
 
-    /// True once the live portfolio/profile no longer matches what the
-    /// current review was generated from.
     private var isReviewOutdated: Bool {
         guard let profile = profiles.first, let reviewedSignature = vm.reviewedSignature else { return false }
         return InsightsViewModel.signature(holdings: holdings, profile: profile) != reviewedSignature
@@ -31,25 +29,32 @@ struct InsightsView: View {
             ScrollView {
                 VStack(alignment: .leading, spacing: 16) {
                     if let explanation = vm.explanation {
-                        sectionCard(title: "Overview") {
+                        sectionCard(icon: "sparkles", title: "Overview") {
                             Text(explanation.overview)
                                 .foregroundStyle(AppColors.textPrimary)
                         }
 
-                        sectionCard(title: "Insights") {
-                            ForEach(explanation.insights, id: \.self) { insight in
-                                Text("• \(insight)")
-                                    .foregroundStyle(AppColors.textPrimary)
+                        sectionCard(icon: "lightbulb.fill", title: "Insights") {
+                            VStack(alignment: .leading, spacing: 8) {
+                                ForEach(explanation.insights, id: \.self) { insight in
+                                    HStack(alignment: .top, spacing: 8) {
+                                        Circle()
+                                            .fill(AppColors.brand)
+                                            .frame(width: 6, height: 6)
+                                            .padding(.top, 6)
+                                        Text(insight).foregroundStyle(AppColors.textPrimary)
+                                    }
+                                }
                             }
                         }
 
-                        sectionCard(title: "Recommendations") {
+                        sectionCard(icon: "arrow.up.right.circle.fill", title: "Recommendations") {
                             ForEach(explanation.recommendations, id: \.self) { recommendation in
                                 Text(recommendation)
                                     .padding(10)
                                     .frame(maxWidth: .infinity, alignment: .leading)
-                                    .background(AppColors.tint)
-                                    .foregroundStyle(AppColors.tintOn)
+                                    .background(AppColors.brand.opacity(0.10))
+//                                    .foregroundStyle(AppColors.brand)
                                     .clipShape(RoundedRectangle(cornerRadius: 10))
                             }
                         }
@@ -62,7 +67,7 @@ struct InsightsView: View {
                             if canAskFollowUp && !vm.isLoading {
                                 let initialQuestions = explanation.suggestedQuestions.filter { !askedQuestions.contains($0) }
                                 if !initialQuestions.isEmpty {
-                                    sectionCard(title: "Ask about your portfolio") {
+                                    sectionCard(icon: "bubble.left.and.bubble.right.fill", title: "Ask about your portfolio") {
                                         VStack(spacing: 8) {
                                             ForEach(initialQuestions, id: \.self) { question in
                                                 questionChip(question) {
@@ -152,11 +157,18 @@ struct InsightsView: View {
             .clipShape(RoundedRectangle(cornerRadius: 10))
     }
 
-    private func sectionCard<Content: View>(title: String, @ViewBuilder content: () -> Content) -> some View {
+    private func sectionCard<Content: View>(icon: String? = nil, title: String, @ViewBuilder content: () -> Content) -> some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text(title)
-                .font(.caption)
-                .foregroundStyle(AppColors.textSecondary)
+            HStack(spacing: 6) {
+                if let icon {
+                    Image(systemName: icon)
+                        .font(.caption)
+                        .foregroundStyle(AppColors.brand)
+                }
+                Text(title)
+                    .font(.caption)
+                    .foregroundStyle(AppColors.textSecondary)
+            }
             content()
         }
         .padding(12)
@@ -168,16 +180,19 @@ struct InsightsView: View {
     private func questionChip(_ question: String, action: @escaping () -> Void) -> some View {
         Button(action: action) {
             HStack(alignment: .top, spacing: 8) {
-                Image(systemName: "bubble.left.fill").font(.caption)
-                Text(question).font(.footnote)
+                Image(systemName: "bubble.left.fill")
+                    .font(.caption)
+                    .foregroundStyle(AppColors.brand)
+                Text(question)
+                    .font(.footnote)
+                    .foregroundStyle(AppColors.textPrimary)
                 Spacer(minLength: 0)
             }
             .padding(10)
             .frame(maxWidth: .infinity, alignment: .leading)
-            .background(AppColors.background)
-            .foregroundStyle(AppColors.action)
+            .background(AppColors.brand.opacity(0.06))
             .clipShape(RoundedRectangle(cornerRadius: 10))
-            .overlay(RoundedRectangle(cornerRadius: 10).stroke(AppColors.border, lineWidth: 0.5))
+            .overlay(RoundedRectangle(cornerRadius: 10).stroke(AppColors.brand.opacity(0.25), lineWidth: 0.5))
         }
         .buttonStyle(.borderless)
     }
