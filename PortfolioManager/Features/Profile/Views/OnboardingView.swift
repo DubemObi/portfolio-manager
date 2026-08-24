@@ -9,6 +9,7 @@ import SwiftData
 struct OnboardingView: View {
     @Environment(\.modelContext) private var context
     @Environment(\.dismiss) private var dismiss
+    @Query private var profiles: [FinancialProfile]
     @State private var vm = ProfileViewModel()
 
     @State private var name: String = ""
@@ -20,11 +21,14 @@ struct OnboardingView: View {
     @State private var selectedGoal: FinancialGoal = .longTermWealth
     @State private var customGoal: String = ""
     @State private var targetAmount: String = ""
+    @State private var hasLoadedExistingProfile = false
+
+    private var isEditingExisting: Bool { profiles.first != nil }
 
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 16) {
-                Text("Your financial profile")
+                Text(isEditingExisting ? "Edit your financial profile" : "Your financial profile")
                     .font(.headline)
                     .foregroundStyle(AppColors.textPrimary)
 
@@ -62,7 +66,7 @@ struct OnboardingView: View {
                     Text(errorMessage).font(.footnote).foregroundStyle(AppColors.warning)
                 }
 
-                Button("Continue") {
+                Button(isEditingExisting ? "Save changes" : "Continue") {
                     let saved = vm.saveProfile(
                         name: name, income: income, expenses: expenses,
                         debtPayments: debtPayments, savings: savings,
@@ -81,5 +85,29 @@ struct OnboardingView: View {
             .padding()
         }
         .background(AppColors.background)
+        .onAppear { loadExistingProfileIfNeeded() }
+    }
+
+    /// Pre-fills the form from the existing profile when this view is
+    /// reused as the edit screen. Guarded by hasLoadedExistingProfile so
+    /// a sheet re-appearing (e.g. after a dismissed keyboard) never
+    /// silently overwrites text the user is mid-way through editing.
+    private func loadExistingProfileIfNeeded() {
+        guard !hasLoadedExistingProfile, let profile = profiles.first else {
+            hasLoadedExistingProfile = true
+            return
+        }
+
+        name = profile.name
+        income = String(format: "%.2f", profile.monthlyIncome)
+        expenses = String(format: "%.2f", profile.monthlyExpenses)
+        debtPayments = String(format: "%.2f", profile.monthlyDebtPayments)
+        savings = String(format: "%.2f", profile.currentSavings)
+        selectedRisk = profile.riskCategory
+        selectedGoal = profile.financialGoal
+        customGoal = profile.customGoalDescription ?? ""
+        targetAmount = profile.targetAmount.map { String(format: "%.2f", $0) } ?? ""
+
+        hasLoadedExistingProfile = true
     }
 }
