@@ -67,16 +67,18 @@ struct PortfolioView: View {
                     Button { isShowingAddHolding = true } label: { Image(systemName: "plus") }
                 }
             }
-            .sheet(isPresented: $isShowingAddHolding) { AddHoldingView() }
-            .sheet(item: $holdingToUpdate) { holding in UpdateValueView(holding: holding) }
-            .sheet(isPresented: $isShowingHistory) { HistoryView() }
+            .sheet(isPresented: $isShowingAddHolding) { ThemedSheet {AddHoldingView()} }
+            .sheet(item: $holdingToUpdate) { holding in ThemedSheet{UpdateValueView(holding: holding)} }
+            .sheet(isPresented: $isShowingHistory) { ThemedSheet{HistoryView()} }
             .sheet(item: $holdingToContribute) { holding in
+                ThemedSheet{
                 ContributeView(holding: holding) { quantity in
                     vm.contribute(to: holding, quantityToAdd: quantity, context: context)
                     if holding.symbol != nil {
                         Task { await vm.refreshPrice(for: holding, context: context) }
                     }
                 }
+            }
             }
         }
     }

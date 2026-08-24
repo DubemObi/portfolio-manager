@@ -33,7 +33,7 @@ struct ContributeView: View {
             .foregroundStyle(AppColors.actionPrimaryOn)
             .clipShape(RoundedRectangle(cornerRadius: 12))
         }
-        .padding()
+        .padding().frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(AppColors.background)
     }
 }

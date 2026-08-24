@@ -78,10 +78,12 @@ struct AddHoldingView: View {
         }
         .background(AppColors.background)
         .sheet(isPresented: $isShowingSymbolSearch) {
+            ThemedSheet{
             SymbolSearchView { match in
                 symbol = match.symbol
                 if name.isEmpty { name = match.description.capitalized }
             }
+        }
         }
     }
 
