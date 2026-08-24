@@ -19,6 +19,10 @@ struct InsightsView: View {
         guard let profile = profiles.first, let reviewedSignature = vm.reviewedSignature else { return false }
         return InsightsViewModel.signature(holdings: holdings, profile: profile) != reviewedSignature
     }
+    
+    private var aiUnavailableReason: String? {
+        AIAvailability.reasonIfUnavailable
+    }
 
     private var canAskFollowUp: Bool {
         vm.isSessionActive && !isReviewOutdated
@@ -28,6 +32,21 @@ struct InsightsView: View {
         NavigationStack {
             ScrollView {
                 VStack(alignment: .leading, spacing: 16) {
+                    if let aiUnavailableReason {
+                        HStack(alignment: .top, spacing: 8) {
+                            Image(systemName: "info.circle.fill")
+                                .font(.caption)
+                                .foregroundStyle(AppColors.tintOn)
+                            Text(aiUnavailableReason)
+                                .font(.footnote)
+                                .foregroundStyle(AppColors.tintOn)
+                        }
+                        .padding(10)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .background(AppColors.tint)
+                        .clipShape(RoundedRectangle(cornerRadius: 10))
+                    }
+                    
                     if let explanation = vm.explanation {
                         sectionCard(icon: "sparkles", title: "Overview") {
                             Text(explanation.overview)
