@@ -37,22 +37,10 @@ final class ProfileViewModel {
         let targetAmountValue = Double(targetAmount)
         let customGoalValue: String? = goal == .somethingElse ? customGoal : nil
 
-        let existingProfiles = try? context.fetch(FetchDescriptor<FinancialProfile>())
+        let repository = ProfileRepository(context: context)
 
-        if let existing = existingProfiles?.first {
-            existing.name = name
-            existing.monthlyIncome = incomeValue
-            existing.monthlyExpenses = expensesValue
-            existing.monthlyDebtPayments = debtValue
-            existing.currentSavings = savingsValue
-            existing.riskCategory = risk
-            existing.lastConfirmed = .now
-            existing.lastRiskAssessment = .now
-            existing.financialGoal = goal
-            existing.customGoalDescription = customGoalValue
-            existing.targetAmount = targetAmountValue
-        } else {
-            let profile = FinancialProfile(
+        do {
+            try repository.save(
                 name: name,
                 monthlyIncome: incomeValue,
                 monthlyExpenses: expensesValue,
@@ -63,11 +51,6 @@ final class ProfileViewModel {
                 customGoalDescription: customGoalValue,
                 targetAmount: targetAmountValue
             )
-            context.insert(profile)
-        }
-
-        do {
-            try context.save()
         } catch {
             errorMessage = "Couldn't save your profile. Please try again."
             return false

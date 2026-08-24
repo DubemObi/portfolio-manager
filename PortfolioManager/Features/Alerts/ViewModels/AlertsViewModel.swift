@@ -19,14 +19,13 @@ class AlertsViewModel {
     ) {
         let snoozeUntil: Date? = decision == .snoozed ? Calendar.current.date(byAdding: .day, value: 7, to: .now) : nil
 
-        let record = RebalanceDecision(
+        let repository = AlertsRepository(context: context)
+        try? repository.recordDecision(
             assetClass: assetClass,
-            driftAtDecision: drift,
-            healthScoreAtDecision: healthScore,
+            drift: drift,
+            healthScore: healthScore,
             decision: decision,
             snoozeUntil: snoozeUntil
         )
-        context.insert(record)
-        try? context.save()
     }
 }

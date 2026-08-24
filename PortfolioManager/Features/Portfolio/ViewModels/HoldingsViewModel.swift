@@ -24,11 +24,16 @@ class HoldingsViewModel {
         assetClass: AssetClass,
         context: ModelContext
     ) async -> Bool {
+        let repository = HoldingsRepository(context: context)
+
+        let symbolToUse: String?
+        let priceToUse: Double
+        let lastUpdatedToUse: Date?
+
         if let symbol {
             let normalizedSymbol = symbol.uppercased()
 
-            let existing = try? context.fetch(FetchDescriptor<Holding>())
-            if existing?.contains(where: { $0.symbol == normalizedSymbol }) == true {
+            if (try? repository.symbolExists(normalizedSymbol)) == true {
                 lastErrorMessage = "You already own \(normalizedSymbol). Update it from your Portfolio instead."
                 return false
             }
@@ -39,21 +44,20 @@ class HoldingsViewModel {
                 return (0, nil)
             }()
 
-            let holding = Holding(
-                name: name, symbol: normalizedSymbol, quantity: quantity,
-                pricePerUnit: price, lastUpdated: lastUpdated, assetClass: assetClass
-            )
-            context.insert(holding)
+            symbolToUse = normalizedSymbol
+            priceToUse = price
+            lastUpdatedToUse = lastUpdated
         } else {
-            let holding = Holding(
-                name: name, symbol: nil, quantity: quantity,
-                pricePerUnit: 1, lastUpdated: .now, assetClass: assetClass
-            )
-            context.insert(holding)
+            symbolToUse = nil
+            priceToUse = 1
+            lastUpdatedToUse = .now
         }
 
         do {
-            try context.save()
+            try repository.add(
+                name: name, symbol: symbolToUse, quantity: quantity,
+                assetClass: assetClass, pricePerUnit: priceToUse, lastUpdated: lastUpdatedToUse
+            )
         } catch {
             lastErrorMessage = "Couldn't save this holding. Please try again."
             return false
@@ -67,11 +71,10 @@ class HoldingsViewModel {
 
     @discardableResult
     func updateValue(for holding: Holding, newValue: Double, context: ModelContext) -> Bool {
-        holding.quantity = newValue
-        holding.lastUpdated = .now
+        let repository = HoldingsRepository(context: context)
 
         do {
-            try context.save()
+            try repository.updateValue(holding: holding, newValue: newValue)
         } catch {
             lastErrorMessage = "Couldn't save this update. Please try again."
             return false
@@ -89,10 +92,9 @@ class HoldingsViewModel {
 
         switch result {
         case .success(let quote):
-            holding.pricePerUnit = quote.c
-            holding.lastUpdated = .now
+            let repository = HoldingsRepository(context: context)
+            try? repository.updatePrice(holding: holding, price: quote.c, updatedAt: .now)
             lastErrorMessage = nil
-            try? context.save()
 
         case .failure(.noInternet):
             lastErrorMessage = "You're offline - showing last known price."
@@ -127,18 +129,19 @@ class HoldingsViewModel {
         }
 
         var failureCount = 0
+        var updates: [(holding: Holding, price: Double, updatedAt: Date)] = []
         for holding in trackedHoldings {
             guard let symbol = holding.symbol, let result = results[symbol] else { continue }
             switch result {
             case .success(let quote):
-                holding.pricePerUnit = quote.c
-                holding.lastUpdated = .now
+                updates.append((holding, quote.c, .now))
             case .failure:
                 failureCount += 1
             }
         }
 
-        try? context.save()
+        let repository = HoldingsRepository(context: context)
+        try? repository.updatePrices(updates)
 
         lastErrorMessage = failureCount > 0
             ? "\(failureCount) of \(trackedHoldings.count) holdings couldn't be refreshed."
@@ -148,14 +151,7 @@ class HoldingsViewModel {
     // MARK: - Contribute
 
     func contribute(to holding: Holding, quantityToAdd: Double, context: ModelContext) {
-        holding.quantity += quantityToAdd
-
-        let record = Contribution(
-            holdingName: holding.name,
-            quantityAdded: quantityToAdd,
-            pricePerUnitAtContribution: holding.pricePerUnit
-        )
-        context.insert(record)
-        try? context.save()
+        let repository = HoldingsRepository(context: context)
+        try? repository.recordContribution(holding: holding, quantityAdded: quantityToAdd)
     }
 }
