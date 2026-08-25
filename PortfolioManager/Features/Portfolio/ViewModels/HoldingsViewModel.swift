@@ -12,10 +12,6 @@ class HoldingsViewModel {
 
     // MARK: - Add
 
-    /// Creates a new Holding. For market-tracked holdings, attempts a
-    /// best-effort live price fetch before saving (falls back to £0/nil
-    /// if offline - non-blocking, matches the app's offline-first design).
-    /// Returns true on success (caller should dismiss).
     @discardableResult
     func addHolding(
         name: String,
@@ -33,8 +29,13 @@ class HoldingsViewModel {
         if let symbol {
             let normalizedSymbol = symbol.uppercased()
 
-            if (try? repository.symbolExists(normalizedSymbol)) == true {
-                lastErrorMessage = "You already own \(normalizedSymbol). Update it from your Portfolio instead."
+            do {
+                if try repository.symbolExists(normalizedSymbol) {
+                    lastErrorMessage = "You already own \(normalizedSymbol). Update it from your Portfolio instead."
+                    return false
+                }
+            } catch {
+                lastErrorMessage = "Couldn't verify this symbol right now. Please try again."
                 return false
             }
 
@@ -93,8 +94,12 @@ class HoldingsViewModel {
         switch result {
         case .success(let quote):
             let repository = HoldingsRepository(context: context)
-            try? repository.updatePrice(holding: holding, price: quote.c, updatedAt: .now)
-            lastErrorMessage = nil
+            do {
+                try repository.updatePrice(holding: holding, price: quote.c, updatedAt: .now)
+                lastErrorMessage = nil
+            } catch {
+                lastErrorMessage = "Fetched a new price but couldn't save it. Please try again."
+            }
 
         case .failure(.noInternet):
             lastErrorMessage = "You're offline - showing last known price."
@@ -141,17 +146,31 @@ class HoldingsViewModel {
         }
 
         let repository = HoldingsRepository(context: context)
-        try? repository.updatePrices(updates)
+        var saveFailed = false
+        do {
+            try repository.updatePrices(updates)
+        } catch {
+            saveFailed = true
+        }
 
-        lastErrorMessage = failureCount > 0
-            ? "\(failureCount) of \(trackedHoldings.count) holdings couldn't be refreshed."
-            : nil
+        if saveFailed {
+            lastErrorMessage = "Fetched new prices but couldn't save them. Please try again."
+        } else if failureCount > 0 {
+            lastErrorMessage = "\(failureCount) of \(trackedHoldings.count) holdings couldn't be refreshed."
+        } else {
+            lastErrorMessage = nil
+        }
     }
 
     // MARK: - Contribute
 
     func contribute(to holding: Holding, quantityToAdd: Double, context: ModelContext) {
         let repository = HoldingsRepository(context: context)
-        try? repository.recordContribution(holding: holding, quantityAdded: quantityToAdd)
+        do {
+            try repository.recordContribution(holding: holding, quantityAdded: quantityToAdd)
+            lastErrorMessage = nil
+        } catch {
+            lastErrorMessage = "Couldn't save your contribution. Please try again."
+        }
     }
 }

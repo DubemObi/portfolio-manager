@@ -34,6 +34,13 @@ struct AlertsView: View {
     var body: some View {
         NavigationStack {
             List {
+                if let lastErrorMessage = vm.lastErrorMessage {
+                    Text(lastErrorMessage)
+                        .font(.footnote)
+                        .foregroundStyle(AppColors.warning)
+                        .listRowBackground(AppColors.warningBackground)
+                }
+
                 if pending.isEmpty && decisions.isEmpty {
                     EmptyStateView(icon: "checkmark.circle", message: "No rebalancing suggestions right now.")
                 } else {

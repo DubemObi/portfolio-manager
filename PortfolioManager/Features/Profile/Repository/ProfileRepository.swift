@@ -29,7 +29,7 @@ final class ProfileRepository {
         customGoalDescription: String?,
         targetAmount: Double?
     ) throws {
-        let existingProfiles = (try? context.fetch(FetchDescriptor<FinancialProfile>())) ?? []
+        let existingProfiles = try context.fetch(FetchDescriptor<FinancialProfile>())
 
         if let existing = existingProfiles.first {
             existing.name = name

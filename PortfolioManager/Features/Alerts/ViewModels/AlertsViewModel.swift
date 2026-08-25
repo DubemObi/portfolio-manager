@@ -10,6 +10,8 @@ import Foundation
 
 @Observable
 class AlertsViewModel {
+    var lastErrorMessage: String?
+
     func recordDecision(
         assetClass: AssetClass,
         drift: Double,
@@ -20,12 +22,17 @@ class AlertsViewModel {
         let snoozeUntil: Date? = decision == .snoozed ? Calendar.current.date(byAdding: .day, value: 7, to: .now) : nil
 
         let repository = AlertsRepository(context: context)
-        try? repository.recordDecision(
-            assetClass: assetClass,
-            drift: drift,
-            healthScore: healthScore,
-            decision: decision,
-            snoozeUntil: snoozeUntil
-        )
+        do {
+            try repository.recordDecision(
+                assetClass: assetClass,
+                drift: drift,
+                healthScore: healthScore,
+                decision: decision,
+                snoozeUntil: snoozeUntil
+            )
+            lastErrorMessage = nil
+        } catch {
+            lastErrorMessage = "Couldn't save your decision. Please try again."
+        }
     }
 }
