@@ -169,4 +169,15 @@ class HoldingsViewModel {
             lastErrorMessage = "Couldn't save your contribution. Please try again."
         }
     }
+    
+    
+    func deleteHolding(_ holding: Holding, context: ModelContext) {
+        let repository = HoldingsRepository(context: context)
+        do {
+            try repository.delete(holding)
+            lastErrorMessage = nil
+        } catch {
+            lastErrorMessage = "Couldn't delete this holding. Please try again."
+        }
+    }
 }

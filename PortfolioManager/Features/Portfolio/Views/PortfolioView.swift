@@ -35,7 +35,8 @@ struct PortfolioView: View {
                                 holding: holding,
                                 onRefresh: { Task { await vm.refreshPrice(for: holding, context: context) } },
                                 onEdit: { holdingToUpdate = holding },
-                                onContribute: { holdingToContribute = holding }
+                                onContribute: { holdingToContribute = holding },
+                                onDelete: {vm.deleteHolding(holding, context: context)}
                             )
                             .listRowBackground(AppColors.card)
                         }

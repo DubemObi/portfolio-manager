@@ -12,6 +12,7 @@ struct HoldingRowView: View {
     let onRefresh: () -> Void
     let onEdit: () -> Void
     let onContribute: () -> Void
+    let onDelete: () -> Void
 
     var body: some View {
         HStack(spacing: 12) {
@@ -42,6 +43,13 @@ struct HoldingRowView: View {
                     Image(systemName: "pencil").foregroundStyle(AppColors.action)
                 }.buttonStyle(.borderless)
             }
+        }
+        .swipeActions(edge: .trailing) {
+            Button(role: .destructive) {
+                onDelete()
+            } label: {
+                Label("Delete", systemImage: "trash")
+            }.tint(.red)
         }
     }
 }

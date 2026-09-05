@@ -77,4 +77,9 @@ final class HoldingsRepository {
         let existing = try context.fetch(FetchDescriptor<Holding>())
         return existing.contains { $0.symbol == symbol }
     }
+    
+    func delete(_ holding: Holding) throws {
+        context.delete(holding)
+        try context.save()
+    }
 }
