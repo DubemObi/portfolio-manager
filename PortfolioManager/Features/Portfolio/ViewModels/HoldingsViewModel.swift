@@ -13,12 +13,8 @@ class HoldingsViewModel {
     // MARK: - Add
 
     @discardableResult
-    func addHolding(
-        name: String,
-        symbol: String?,
-        quantity: Double,
-        assetClass: AssetClass,
-        context: ModelContext
+    
+    func addHolding(name: String, symbol: String?, quantity: Double, assetClass: AssetClass, context: ModelContext
     ) async -> Bool {
         let repository = HoldingsRepository(context: context)
 

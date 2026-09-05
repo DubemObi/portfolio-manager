@@ -45,6 +45,7 @@ final class OnDeviceAIExplanationProvider: ExplanationProvider {
             "If any holdings are flagged as not recently updated, mention this as a caveat rather than treating those figures as fully reliable."
             "The user may ask up to two follow-up questions about this portfolio. Answer the first naturally, offering further questions. The second follow-up answer should read as a concluding remark that wraps up the conversation."
         }
+        
         let newSession = LanguageModelSession(instructions: instructions)
 
         do {

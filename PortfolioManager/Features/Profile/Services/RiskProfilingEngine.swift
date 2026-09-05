@@ -67,6 +67,7 @@ struct RiskProfilingEngine {
     /// Classifies a completed quiz from the summed scores of selected
     /// answers. Boundaries split the 6-24 possible range into three
     /// roughly even bands (6-11 / 12-18 / 19-24).
+    
     static func classify(scores: [Int]) -> FinancialProfile.RiskCategory {
         let total = scores.reduce(0, +)
         switch total {
