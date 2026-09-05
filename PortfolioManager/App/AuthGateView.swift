@@ -10,13 +10,21 @@ import LocalAuthentication
 
 struct AuthGateView: View {
     @State private var isUnlocked = false
+    @State private var authFailed = false
 
     var body: some View {
         if isUnlocked {
             RootFlowView()
         } else {
-            Button("Unlock with Face ID") {
-                authenticate()
+            VStack(spacing: 16) {
+                Button("Unlock Portfolio") {
+                    authenticate()
+                }
+                if authFailed {
+                    Text("Authentication failed. Tap to try again.")
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
+                }
             }
             .task {
                 authenticate()
@@ -28,11 +36,12 @@ struct AuthGateView: View {
         let context = LAContext()
 
         context.evaluatePolicy(
-            .deviceOwnerAuthenticationWithBiometrics,
+            .deviceOwnerAuthentication,
             localizedReason: "Unlock your portfolio"
         ) { success, _ in
             Task { @MainActor in
                 isUnlocked = success
+                authFailed = !success
             }
         }
     }
